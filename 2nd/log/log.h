@@ -1,10 +1,13 @@
 #pragma once
 
-#include "call_graph.h"
+#include "2nd/callgraph/call_graph.h"
+#include "log_file_mgr.h"
 
 #include <cstdio>
 #include <iostream>
 #include <string>
+#include <queue>
+#include <thread>
 
 enum LogLevel {
   kUnknownLogLevel = 0,
@@ -15,12 +18,12 @@ enum LogLevel {
 
 class MyLog {
  public:
-  ~MyLog();
+  ~MyLog() = default;
 
   static MyLog * GetInstance();
 
   int Init(uint32_t log_level = LogLevel::kDebugLogLevel,
-      const char * log_file_path = "mylog.txt");
+      const char * log_file_path = "/Users/camxu/Documents/my_workspace/2nd/log/mylog.txt");
 
   template<typename... Args>
   int Log(uint32_t log_level, const std::string format, Args ... args) {
@@ -50,10 +53,12 @@ class MyLog {
         MyCallGraph::GetInstance()->GetGraphId().c_str(),
         sz_log_level,
         args...);
-    std::cout << buffer << std::endl;
-    // fprintf(ptr_log_file_, "%s\n", buffer);
+    log_queue_.push(buffer);
+    std::cout << log_queue_.size() << std::endl;
     return 0;
   }
+
+  void LoopPrint();
 
  private:
   MyLog() = default;
@@ -61,7 +66,10 @@ class MyLog {
   std::string GetCurrentTime();
 
   uint32_t log_level_;
-  FILE * ptr_log_file_;
+  LogFileMgr log_file_mgr_;
+
+  std::thread loop_print_thread_;
+  std::queue<std::string> log_queue_;
 };
 
 #define PLOG_INIT() \
